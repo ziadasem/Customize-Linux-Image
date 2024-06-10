@@ -300,9 +300,47 @@ building, updating, and maintaining a toolchain from scratch is a hard task. for
 the crosstool didn't support the generation of all compilers, so in late 2007 Yann E. Morin added the support for uClibc and other features including a menu interface that makes users do the configuration via a menu and called this the new generation of the toolchain, or **crosstool-NG**, read about the full story from [here](https://crosstool-ng.github.io/docs/introduction/) or visit their [website](https://crosstool-ng.github.io/).
 
 
-### 3.2 Installing crosstool-NG
+### 3.2 Downloading and Installing crosstool-NG
 
+before downloading and installing crosstool-NG, you should install the tools stated at the beginning of the section.
 
+1. create a directory for the crosstool-NG
+2. fetch the latest version crosstool-NG (at writing of this article it is 1.26.0) 
+3. install and config the crosstool-NG
+
+you can get the crosstool-NG as tarball from [here](http://crosstool-ng.org/download/crosstool-ng/) or by using command `wget` as follows:
+```bash
+wget http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-VERSION.tar.bz2
+```
+Note: replace the -VERSION with the required version number, as in this case the latest version is 1.26.0, then
+
+```bash
+ziad@ziadpc:~$ wget http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.26.0.tar.bz2
+```
+
+or clone the github repository and checkout to the latest version, note the default branch is the dev branch which is might be unstable. in this chapter this method is used.
+
+```bash
+ziad@ziadpc:~$ mkdir toolchain_playground && cd toolchain_playground
+
+ziad@ziadpc:~/toolchain_playground$ git clone https://github.com/crosstool-ng/crosstool-ng.git #download the unstable development branch
+ziad@ziadpc:~/toolchain_playground$ cd crosstool-ng
+ziad@ziadpc:~/toolchain_playground$ git checkout crosstool-ng-1.26.0 #download the stable release branch
+```
+for running configuration and installation, navigate to the  execute the following commands from the `crosstool-ng` directory:
+```bash
+/configure --prefix=${PWD} --enable-local #run the configure script
+make
+make install #in case of failure run with sudo make install 
+```
+
+The --prefix=${PWD} option means that the program will be installed into the current directory, which avoids the need for root permissions, as would be required if you were to
+install it in the default location /usr/local/share.
+
+now crosstool-ng is installed, next we will build toolchain for beaglebone black.
+
+### 3.3 Building a toolchain for BeagleBone Black
+for configuration of the toolchain for BeagleBone we can launch the menu to configure the output, however we can use samples to generate the toolchain. 
 
 
 ## 10- Additional Information
