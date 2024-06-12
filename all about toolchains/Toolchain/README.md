@@ -1,5 +1,5 @@
 # Toolchains
-in this chapter, an explanation of toolchains will be introduced in addition to working examples to generate a toolchain for `Qemu` and `BeagleBone Black`.
+in this chapter, an explanation of toolchains will be introduced in addition to working examples to generate a toolchain for `Qemu` (an emulator) and `BeagleBone Black`.
 
 **Why is toolchain important for an Embedded Linux project**
 
@@ -30,6 +30,8 @@ if you have Ubuntu (or any other distribution that uses apt package manager) exe
 ```bash
 sudo apt-get install autoconf automake bison bzip2 cmake  flex g++ gawk gcc gettext git gperf help2man libncurses5-dev libstdc++6 libtool libtool-bin make patch python3-dev rsync texinfo unzip wget xz-utils
 ```
+
+if you don't have the beaglebone black you can use the Qemu emulator
 
 ## 1- Introduction
  toolchain is a set of distinct software development tools that are linked (or chained) together by specific stages such as GCC, binutils, and glibc. Optionally, a toolchain may contain other tools such as a debugger or a compiler for a specific programming language, such as C++.<br>
@@ -329,7 +331,8 @@ ziad@ziadpc:~/toolchain_playground$ git checkout crosstool-ng-1.26.0 #download t
 ```
 for running configuration and installation, navigate to the  execute the following commands from the `crosstool-ng` directory:
 ```bash
-/configure --prefix=${PWD} --enable-local #run the configure script
+./bootstrap
+./configure --prefix=${PWD} --enable-local #run the configure script
 make
 make install #in case of failure run with sudo make install 
 ```
@@ -341,6 +344,199 @@ now crosstool-ng is installed, next we will build toolchain for beaglebone black
 
 ### 3.3 Building a toolchain for BeagleBone Black
 for configuration of the toolchain for BeagleBone we can launch the menu to configure the output, however we can use samples to generate the toolchain. 
+
+to list samples
+```bash
+./ct-ng list-samples
+```
+example:
+```bash
+ziad@ziadpc:~/toolchain_playground/crosstool-ng$ ./ct-ng list-samples
+Status  Sample name
+[L...]   aarch64-ol7u9-linux-gnu
+[L...]   aarch64-ol8u6-linux-gnu
+[L...]   aarch64-ol8u7-linux-gnu
+[L...]   aarch64-rpi3-linux-gnu
+[L...]   aarch64-rpi4-linux-gnu
+[L...]   aarch64-unknown-linux-gnu
+[L...]   aarch64-unknown-linux-uclibc
+[L...]   alphaev56-unknown-linux-gnu
+....
+# the rest of the output is left over
+....
+ L (Local)       : sample was found in current directory
+ G (Global)      : sample was installed with crosstool-NG
+ X (EXPERIMENTAL): sample may use EXPERIMENTAL features
+ B (BROKEN)      : sample is currently broken
+ O (OBSOLETE)    : sample needs to be upgraded
+
+```
+for example we can select the configuration of `aarch64-ol7u9-linux-gnu`, to set the configuration execute the following:
+```bash
+ziad@ziadpc:~/toolchain_playground/crosstool-ng$ ./ct-ng aarch64-ol7u9-linux-gnu
+
+CONF  aarch64-ol7u9-linux-gnu
+#
+# configuration written to .config
+#
+
+***********************************************************
+
+Initially reported by: Jose E. Marchesi
+URL: 
+
+Comment:
+OL 7.9 toolchain configured for AARCH64
+
+***********************************************************
+
+Now configured for "aarch64-ol7u9-linux-gnu"
+ziad@ziadpc:~/toolchain_playground/crosstool-ng$ 
+```
+now we can launch the menu configuration and see the preconfiured values
+```bash
+ziad@ziadpc:~/toolchain_playground/crosstool-ng$ ./ct-ng menuconfig
+```
+![menuconfig](https://i.ibb.co/TL3dXcG/Screenshot-from-2024-06-10-18-22-27.png)
+
+then, we can search for the toolchain configuration sample that fits beaglebone black to save time without manually setting the configuration from the menu.
+
+recalling the name of a toolchain:
+```
+<arch>-<vendor>-<os>-<abi>
+```
+after searching about beaglebone black on their website, we will found that it utilizes **AM335x 720MHz ARM Cortex-A8** processor. 
+so for architecture: we found that it is ARM. now we will search about its floating point processor.
+
+after searching on ARM website, we found that this processor has a floating point processor.
+![arm processor](https://developer.arm.com/-/jssmedia/Arm%20Developer%20Community/Images/Block%20Diagrams/Cortex-A%20Processor/Cortex-A8.png?h=311&iar=0&w=325&rev=d7eb2bd926f24f35b0adf7e96172b39a&hash=FD003080F18279ED87091C45BCA35AFB)
+
+for decding the C-library to use, beaglebone supports booting from SD card, so memory size isn't a problem, hence we can use glibc as the selected library.
+
+now we will search for the configuration that best fit our requirements:
+
+```bash
+ziad@ziadpc:~/toolchain_playground/crosstool-ng$ ./ct-ng list-samples | grep arm-cortex
+[L...]   arm-cortex_a15-linux-gnueabihf
+[L..X]   arm-cortexa5-linux-uclibcgnueabihf
+[L...]   arm-cortex_a8-linux-gnueabi
+[L..X]   arm-cortexa9_neon-linux-gnueabihf
+[L..X]   x86_64-w64-mingw32,arm-cortexa9_neon-linux-gnueabihf
+```
+
+the best configuration to fit our requirements is ` arm-cortex_a8-linux-gnueabi`, except its abi not supports hard float (`gnueabi` should be `gnueabiHF`), then here is the power of customization that we can select this sample and modify it via menu configuration to use `gnueabihf`.
+
+**1. Find the complete details about this sample**
+```bash
+ ./ct-ng show-[sample name]
+```
+```bash
+ziad@ziadpc:~/toolchain_playground/crosstool-ng$ ./ct-ng show-arm-cortex_a8-linux-gnueabi
+[L...]   arm-cortex_a8-linux-gnueabi
+    Languages       : C,C++
+    OS              : linux-6.4
+    Binutils        : binutils-2.40
+    Compiler        : gcc-13.2.0
+    C library       : glibc-2.38
+    Debug tools     : duma-2_5_21 gdb-13.2 ltrace-0.7.3 strace-6.4
+    Companion libs  : expat-2.5.0 gettext-0.21 gmp-6.2.1 isl-0.26 libelf-0.8.13 libiconv-1.16 mpc-1.2.1 mpfr-4.2.1 ncurses-6.4 zlib-1.2.13 zstd-1.5.5
+    Companion tools :
+```
+
+**2. Set the sample configuration**
+
+```
+./ct-ng arm-cortex_a8-linux-gnueabi
+```
+
+```bash
+ziad@ziadpc:~/toolchain_playground/crosstool-ng$ ./ct-ng arm-cortex_a8-linux-gnueabi
+
+CONF  arm-cortex_a8-linux-gnueabi
+#
+# configuration written to .config
+#
+
+***********************************************************
+
+Initially reported by: Yann E. MORIN
+URL: http://ymorin.is-a-geek.org/
+
+***********************************************************
+
+Now configured for "arm-cortex_a8-linux-gnueabi"
+```
+
+**3- Decide which configuration you want to change in the menu config**
+
+1- enable support for hardware floating point
+
+2- use neon as specific FPU **to BUILD THE LINUX KERNEL successfully**
+
+3- enable the toolchain to be linked with new libraries after built
+
+```bash
+ziad@ziadpc:~/toolchain_playground/crosstool-ng$ ./ct-ng menuconfig
+```
+
+1- enable support for hardware floating point
+* navigate to **Target options** (press enter on it)
+* in target options navigate to **Floating Point**(press enter on it)
+* in floating point menu choose **hardware (FPU)** then press enter
+
+2- use neon as specific FPU 
+* in target options menu navigate to **Use specific FPU**
+* write **neon** and press enter
+
+3- enable the toolchain to be linked with new libraries after built
+* in the main menu navigate to **Paths and misc options** menu
+* navigate to **Render the toolchain read-only** and disable it (it shouldn't start with an asterisk)
+
+finally choose save in the bottom menu, then exit.now we can build our beaglebone black toolchain
+
+> NOTE: you can search for settings and their current value  by pressing `/` in the menuconfig
+
+after getting back to the terminal, type the following to build the toolchain.
+```bash
+./ct-ng build
+```
+
+```bash
+iad@ziadpc:~/toolchain_playground/crosstool-ng$ ./ct-ng build
+[INFO ]  Performing some trivial sanity checks
+[WARN ]  Number of open files 1024 may not be sufficient to build the toolchain; increasing to 2048
+[INFO ]  Build started 20240610.190437
+[INFO ]  Building environment variables
+[WARN ]  Directory '/home/ziad/src' does not exist.
+[WARN ]  Will not save downloaded tarballs to local storage.
+[EXTRA]  Preparing working directories
+[EXTRA]  Installing user-supplied crosstool-NG configuration
+[EXTRA]  =================================================================
+[EXTRA]  Dumping internal crosstool-NG configuration
+[EXTRA]    Building a toolchain for:
+[EXTRA]      build  = x86_64-pc-linux-gnu
+[EXTRA]      host   = x86_64-pc-linux-gnu
+[EXTRA]      target = arm-cortex_a8-linux-gnueabihf
+[EXTRA]  Dumping internal crosstool-NG configuration: done in 0.39s (at 00:06)
+[INFO ]  =================================================================
+[INFO ]  Retrieving needed toolchain components' tarballs
+[EXTRA]    Retrieving 'linux-6.4'
+.....
+```
+
+<br>
+
+**THE OUTPUT :**
+
+> **Find the build output in ~/x-tools/arm-cortex_a8-linux-gnueabihf**
+
+
+### 3.4 Building a toolchain for Qemu
+
+
+
+
+
 
 
 ## 10- Additional Information
