@@ -532,11 +532,83 @@ iad@ziadpc:~/toolchain_playground/crosstool-ng$ ./ct-ng build
 
 
 ### 3.4 Building a toolchain for Qemu
+a complete description and installation instructions of qemu is available in the introduction article, here we will build the toolchain for it.
 
+On the QEMU target, you will be emulating an ARM-versatile PB evaluation board that has an ARM926EJ-S processor core, which implements the ARMv5TE instruction set and 32-bit. You need to generate a crosstool-NG toolchain that matches the specification. The procedure is very similar to the one for the BeagleBone Black.
 
+![processor](https:/5/documentation-service.arm.com/static/5e8e3d1088295d1e18d3a97a?token=)
 
+before choosing from samples, we will define some points:
 
+1. which architecture we are building for?; **ARM non 64-bit (choose arm not aarch64)**
+2. does the memory size can be a problem?; **No, we can use glibc**
+3- does it uses floating point unit?: **No**
 
+hence the toolchain name that fits these requirements is
+```bash
+arm-linux-gnueabi
+or arm-.*-linux-gnueabi #regular expression, no matter who is the vendor
+```
+
+```bash
+ziad@ziadpc:~/toolchain_playground/crosstool-ng$ ./ct-ng list-samples | grep arm-.*-linux-gnueabi
+[L...]   arm-cortex_a15-linux-gnueabihf
+[L...]   arm-cortex_a8-linux-gnueabi
+[L..X]   arm-cortexa9_neon-linux-gnueabihf
+[L..X]   x86_64-w64-mingw32,arm-cortexa9_neon-linux-gnueabihf
+[L...]   arm-ol7u9-linux-gnueabi
+[L...]   arm-ol7u9-linux-gnueabihf
+[L...]   arm-unknown-linux-gnueabi
+```
+
+the best search result is `[L...]   arm-unknown-linux-gnueabi`. now for setting this sample as predefined configuration and configure the toolchain to allow libraries to be linked with it after building.
+
+before choosing new toolchain to build, we need to clean the previous build for preventing any potential bugs.
+```
+./ct-ng  distclean
+```
+```bash
+ziad@ziadpc:~/toolchain_playground/crosstool-ng$ ./ct-ng  distclean
+  CLEAN scripts
+  CLEAN log
+  CLEAN build dir
+  CLEAN .config
+
+```
+
+```bash
+ziad@ziadpc:~/toolchain_playground/crosstool-ng$ ./ct-ng arm-unknown-linux-gnueabi
+  CONF  arm-unknown-linux-gnueabi
+#
+# No change to .config
+#
+
+***********************************************************
+
+Initially reported by: Alexander BIGGA
+URL: http://sourceware.org/ml/crossgcc/2008-06/msg00031.html
+
+***********************************************************
+
+Now configured for "arm-unknown-linux-gnueabi"
+
+```
+
+then open menuconfig
+```bash
+ziad@ziadpc:~/toolchain_playground/crosstool-ng$ ./ct-ng menuconfig
+```
+
+then enable the toolchain to be linked with new libraries after built:
+
+* in the main menu navigate to **Paths and misc options** menu
+* navigate to **Render the toolchain read-only** and disable it (it shouldn't start with an asterisk)
+
+lastly, build the toolchain.
+
+```bash
+ct-ng build
+```
 
 
 ## 10- Additional Information
