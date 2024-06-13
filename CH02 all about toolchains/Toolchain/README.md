@@ -536,7 +536,7 @@ a complete description and installation instructions of qemu is available in the
 
 On the QEMU target, you will be emulating an ARM-versatile PB evaluation board that has an ARM926EJ-S processor core, which implements the ARMv5TE instruction set and 32-bit. You need to generate a crosstool-NG toolchain that matches the specification. The procedure is very similar to the one for the BeagleBone Black.
 
-![processor](https:/5/documentation-service.arm.com/static/5e8e3d1088295d1e18d3a97a?token=)
+![processor](https:2//documentation-service.arm.com/static/5e8e3d1088295d1e18d3a97a?token=)
 
 before choosing from samples, we will define some points:
 
@@ -609,6 +609,451 @@ lastly, build the toolchain.
 ```bash
 ct-ng build
 ```
+
+## 4. Anatomy of a toolchain
+in this section we will discover the generated files in the toolchain, the generated files in `x-tools/arm-cortex_a8-linux-gnueabihf/` or `x-tools/arm-unknown-linux-gnueabi/` in case of toolchain for beaglebone black or Qemu.
+
+### 4.1 Test the generated toolchain
+
+```bash
+ziad@ziadpc:~$ cd x-tools/arm-cortex_a8-linux-gnueabihf/
+ziad@ziadpc:~/x-tools/arm-cortex_a8-linux-gnueabihf$ ls
+total 2.0M
+drwxrwxr-x 7 ziad ziad 4.0K Jun 11 01:31 arm-cortex_a8-linux-gnueabihf
+drwxrwxr-x 2 ziad ziad 4.0K Jun 11 02:03 bin
+-rw-rw-r-- 1 ziad ziad 2.0M Jun 11 02:03 build.log.bz2
+drwxrwxr-x 2 ziad ziad 4.0K Jun 11 01:31 include
+drwxrwxr-x 4 ziad ziad 4.0K Jun 11 01:31 lib
+drwxrwxr-x 3 ziad ziad 4.0K Jun 11 01:31 libexec
+drwxrwxr-x 5 ziad ziad 4.0K Jun 11 02:03 share
+ziad@ziadpc:~/x-tools/arm-cortex_a8-linux-gnueabihf$ 
+```
+the `bin` directory is where you can find the cross-compiler and other tools, to use it in the terminal you should add it to the path variable.
+
+```bash
+ziad@ziadpc:~/x-tools/arm-cortex_a8-linux-gnueabihf/bin$ ls | grep gcc
+lrwxrwxrwx 1 ziad ziad    33 Jun 11 01:31 arm-cortex_a8-linux-gnueabihf-cc -> arm-cortex_a8-linux-gnueabihf-gcc
+-rwxr-xr-x 2 ziad ziad  1.8M Jun 11 02:03 arm-cortex_a8-linux-gnueabihf-gcc
+-rwxr-xr-x 2 ziad ziad  1.8M Jun 11 02:03 arm-cortex_a8-linux-gnueabihf-gcc-13.2.0
+-rwxr-xr-x 1 ziad ziad   35K Jun 11 02:03 arm-cortex_a8-linux-gnueabihf-gcc-ar
+-rwxr-xr-x 1 ziad ziad   35K Jun 11 02:03 arm-cortex_a8-linux-gnueabihf-gcc-nm
+-rwxr-xr-x 1 ziad ziad   35K Jun 11 02:03 arm-cortex_a8-linux-gnueabihf-gcc-ranlib
+```
+
+add it to the path variables by executing the following command:
+
+```bash
+PATH=~/x-tools/arm-cortex_a8-linux-gnueabihf/bin:$PATH
+```
+
+now test:
+```bash
+ziad@ziadpc:~/x-tools/arm-cortex_a8-linux-gnueabihf/bin$ arm-cortex_a8-linux-gnueabihf-gcc
+arm-cortex_a8-linux-gnueabihf-gcc: fatal error: no input files
+compilation terminated.
+```
+it should output something like this. in case of failure double check the path of the output of crosstool-ng and check the exsitnace of gcc in the directory as I did in the previous step.
+
+**Test the compilation**:
+
+we will use a simple program:
+```c
+//main.c
+#include <stdio.h>
+int main(){
+	printf("Hello World! \n");
+	return 0 ;
+}
+```
+
+then compile it:
+
+```bash
+ziad@ziadpc:~/toolchain_playground$ arm-cortex_a8-linux-gnueabihf-gcc main.c -o helloworld.arm
+=ziad@ziadpc:~/toolchain_playground$ ls
+total 20K
+drwxrwxr-x 19 ziad ziad 4.0K Jun 12 15:47 crosstool-ng
+-rwxrwxr-x  1 ziad ziad  12K Jun 12 18:13 helloworld.arm
+-rw-rw-r--  1 ziad ziad   74 Jun 12 18:10 main.c
+```
+
+execute it on x86 machine
+```
+ziad@ziadpc:~/toolchain_playground$ ./helloworld.arm 
+bash: ./helloworld.arm: cannot execute binary file: Exec format error
+```
+can't be executed as expected. to know more information about a file use the command `file`.
+```bash
+ziad@ziadpc:~/toolchain_playground$ file helloworld.arm 
+helloworld.arm: ELF 32-bit LSB executable, ARM, EABI5 version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-armhf.so.3, for GNU/Linux 6.4.0, with debug_info, not stripped
+```
+
+### 4.2 Find about the compiler
+from the previous command we see that the compiler compiles the source code with some configurations, what are the configurations of the compiler and how to set them for specific out, that will be introduced in this section.
+
+**Finding Information about a compiler**:
+
+in case of you are working with a new compiler and you want to know about it. use the following command
+
+```
+arm-cortex_a8-linux-gnueabihf-gcc --version
+```
+
+```bash
+ziad@ziadpc:~/toolchain_playground$ arm-cortex_a8-linux-gnueabihf-gcc --version
+arm-cortex_a8-linux-gnueabihf-gcc (crosstool-NG 1.26.0) 13.2.0
+Copyright (C) 2023 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+```
+
+to find its configuration use `-v`:
+
+```bash
+ziad@ziadpc:~/toolchain_playground$ arm-cortex_a8-linux-gnueabihf-gcc -v
+Using built-in specs.
+COLLECT_GCC=arm-cortex_a8-linux-gnueabihf-gcc
+COLLECT_LTO_WRAPPER=/home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/libexec/gcc/arm-cortex_a8-linux-gnueabihf/13.2.0/lto-wrapper
+Target: arm-cortex_a8-linux-gnueabihf
+Configured with: /home/ziad/toolchain_playground/crosstool-ng/.build/arm-cortex_a8-linux-gnueabihf/src/gcc/configure --build=x86_64-build_pc-linux-gnu --host=x86_64-build_pc-linux-gnu --target=arm-cortex_a8-linux-gnueabihf --prefix=/home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf --exec_prefix=/home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf 
+
+--with-sysroot=/home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/arm-cortex_a8-linux-gnueabihf/sysroot --enable-languages=c,c++ --with-cpu=cortex-a8 --with-fpu=neon --with-float=hard 
+
+--with-pkgversion='crosstool-NG 1.26.0' --enable-__cxa_atexit --disable-libmudflap --disable-libgomp --disable-libssp --disable-libquadmath --disable-libquadmath-support --disable-libsanitizer --disable-libmpx --with-gmp=/home/ziad/toolchain_playground/crosstool-ng/.build/arm-cortex_a8-linux-gnueabihf/buildtools --with-mpfr=/home/ziad/toolchain_playground/crosstool-ng/.build/arm-cortex_a8-linux-gnueabihf/buildtools --with-mpc=/home/ziad/toolchain_playground/crosstool-ng/.build/arm-cortex_a8-linux-gnueabihf/buildtools --with-isl=/home/ziad/toolchain_playground/crosstool-ng/.build/arm-cortex_a8-linux-gnueabihf/buildtools --enable-lto --enable-threads=posix --enable-target-optspace --enable-plugin --enable-gold --disable-nls --disable-multilib --with-local-prefix=/home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/arm-cortex_a8-linux-gnueabihf/sysroot --enable-long-long
+Thread model: posix
+Supported LTO compression algorithms: zlib zstd
+gcc version 13.2.0 (crosstool-NG 1.26.0) 
+```
+Configurations to check:
+
+* ---with-sysroot=/home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/arm-cortex_a8-linux-gnueabihf/sysroot  This is the default sysroot directory; see the following section for an explanation.
+
+* --enable-languages=c,c++: Using this, we have both C and C++ languages enabled.
+* --with-cpu=cortex-a8: The code is generated for an ARM Cortex A8 core.
+* --with-float=hard: Generates opcodes for the floating-point unit and uses the VFP registers for parameters.
+* --enable-threads=posix: This enables the POSIX threads.
+
+these are default settings for a compiler, for overriding these configuration you can use command line. for example for compiling to cortex-a5 instead of cortex-a8:
+
+```bash
+ziad@ziadpc:~/toolchain_playground$ arm-cortex_a8-linux-gnueabihf-gcc -mcpu=cortex-a5 main.c -o hello.arma5
+```
+
+### 4.3 The sysroot, library, and header files
+from the outputs of the toolchain is libraries, binaries, headers, and some configuration files, where are these files are stored? The answer is in the **sysroot** directory.
+
+to see the location of **sysroot** directory use the following:
+```bash
+arm-cortex_a8-linux-gnueabihf-gcc -print-sysroot
+```
+
+```bash
+ziad@ziadpc:~/toolchain_playground$ arm-cortex_a8-linux-gnueabihf-gcc -print-sysroot
+/home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/arm-cortex_a8-linux-gnueabihf/sysroot
+```
+
+to change the directory of the sysroot you can use `-sysroot=` in the command line on executing `gcc`.
+
+
+**Content of sysroot**:
+
+```bash
+ziad@ziadpc:~/toolchain_playground$ ls /home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/arm-cortex_a8-linux-gnueabihf/sysroot
+total 20K
+drwxrwxr-x 2 ziad ziad 4.0K Jun 11 01:03 etc
+drwxrwxr-x 2 ziad ziad 4.0K Jun 11 01:31 lib
+drwxrwxr-x 2 ziad ziad 4.0K Jun 11 01:03 sbin
+drwxrwxr-x 8 ziad ziad 4.0K Jun 11 01:02 usr
+drwxrwxr-x 3 ziad ziad 4.0K Jun 11 01:03 var
+```
+
+```bash
+ziad@ziadpc:~/toolchain_playground$ ls /home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/arm-cortex_a8-linux-gnueabihf/sysroot/usr
+total 24K
+drwxrwxr-x  2 ziad ziad 4.0K Jun 11 01:36 bin
+drwxrwxr-x 34 ziad ziad 4.0K Jun 11 01:48 include
+drwxrwxr-x  7 ziad ziad 4.0K Jun 11 01:36 lib
+drwxrwxr-x  3 ziad ziad 4.0K Jun 11 01:02 libexec
+drwxrwxr-x  2 ziad ziad 4.0K Jun 11 01:03 sbin
+drwxrwxr-x  7 ziad ziad 4.0K Jun 11 02:03 share
+```
+
+* lib:
+    
+    contains the shared objects (`.o`) for the C Library and the dynamic linker/loader, `ld-linux`
+
+* sbin:
+
+    provides the ldconfig utility that used for optimizing library loading path
+
+* usr/bin: 
+
+    contains the binaries utilities that are compiled to the target (to run on the target)
+    ```bash
+    ziad@ziadpc:~/toolchain_playground$ file /home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/arm-cortex_a8-linux-gnueabihf/sysroot/usr/bin/clear
+/home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/arm-cortex_a8-linux-gnueabihf/sysroot/usr/bin/clear: ELF 32-bit LSB executable, ARM, EABI5 version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-armhf.so.3, for GNU/Linux 6.4.0, stripped
+    ```
+
+* usr/include:
+    
+    contains the header files for all the libraries
+
+* usr/lib:
+    
+    contains the static libraries and other installed libraries by the user
+
+* usr/share:
+
+    used for localization and internationalization
+
+as shown some of these tools should be deployed into the target.
+
+### 4.4 Other tools in the toolchain
+you can find them in `~/x-tools/arm-cortex_a8-linux-gnueabihf/bin`
+
+* `addr2line`: Converts program addresses into filenames and numbers by reading the debug symbol tables in an executable file. It is very useful when decoding addresses printed out in a system crash report.
+* `ar`: The archive utility is used to create static libraries.
+* `as`: This is the GNU assembler.
+* `c++filt`: This is used to demangle C++ and Java symbols.
+* `cpp`: This is the C preprocessor and is used to expand #define, #include, and other similar directives. You seldom need to use this by itself.
+* `elfedit`: This is used to update the ELF header of the ELF files.
+* `g++`: This is the GNU C++ frontend, which assumes that source files contain C++ code.
+* `gcc`: This is the GNU C frontend, which assumes that source files contain C code.
+* `gcov`: This is a code coverage tool.
+* `gdb`: This is the GNU debugger.
+* `gprof`: This is a program profiling tool.
+* `ld`: This is the GNU linker.
+* `nm`: This lists symbols from object files.
+* `objcopy`: This is used to copy and translate object files.
+* `objdump`: This is used to display information from object files.
+* `ranlib`: This creates or modifies an index in a static library, making the linking stage faster.
+* `readelf`: This displays information about files in ELF object format.
+* `size`: This lists section sizes and the total size.
+* `strings`: This displays strings of printable characters in files.
+* `strip`: This is used to strip an object file of debug symbol tables, thus making it smaller. Typically, you would strip all the executable code that is put onto the target.
+
+```bash
+ziad@ziadpc:~/toolchain_playground$ ls | grep helloworld.arm
+total 32K
+-rwxrwxr-x  1 ziad ziad  12K Jun 12 18:13 helloworld.arm
+ziad@ziadpc:~/toolchain_playground$ file helloworld.arm #not stripped its size is 12K
+helloworld.arm: ELF 32-bit LSB executable, ARM, EABI5 version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-armhf.so.3, for GNU/Linux 6.4.0, with debug_info, not stripped
+ziad@ziadpc:~/toolchain_playground$ arm-cortex_a8-linux-gnueabihf-strip helloworld.arm 
+ziad@ziadpc:~/toolchain_playground$ file helloworld.arm #stripped
+helloworld.arm: ELF 32-bit LSB executable, ARM, EABI5 version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-armhf.so.3, for GNU/Linux 6.4.0, stripped
+ziad@ziadpc:~/toolchain_playground$ ls | grep  helloworld.arm #5.5K 
+total 28K
+-rwxrwxr-x  1 ziad ziad 5.5K Jun 12 18:54 helloworld.arm
+```
+
+### 4.5 Components of the C library
+C- library isn't a single library file, it consists from 4-parts implementaing POSIX standards which are:
+
+1. **libc**: the main C library that contains the well-known POSIX functions such as `printf`, `open`, `close`
+2. **libm**: the math library that contains the math functions such as `cos`, `exp`, and `log`
+3. **libpthread**: contains all the POSIX thread functions with their names begins with `pthread_`
+4. **librt**: the realtime library, it has the extensopm to POSIX including shared memory and asynchronous I/O
+
+## 5. Static and Shared Libraries and linking with them
+programs are compiled and linked with the C Library, also programs are linked with other libraries. the linking is done via two approachs; the static linking and the dynamic/shared linking.
+the static linking means that the output program is packaged with the library in the same executable, while the dynamic linking means that the output program depends on the library but not compiled with it, it links to it in the runtime.
+
+### 5.1 Static Libraries
+the output program contains its code and addedd to it the used code of the library. its libraries ends with `.a`.
+
+The statically linked program runs faster than dynamic linked programs since there is no overhead of loading the library, but its size will be larger than the dynamically linked program.
+
+#### When to use the static library
+
+1. when the linked library is small sized, so no overhead of loading the library in the runtime
+2. when you need to run the program before the filesystem that holds library is loaded, or before the os starts the runtime linker/loader
+3. when you need to link a small part from the library to the program rather than linking the whole library
+
+#### Compile against static library
+in the following example we will link a code with a static library.
+to compile statically use the option `-static`
+```c 
+//main.c
+#include <stdio.h>
+int main(){
+	printf("Hello World! \n");
+	return 0 ;
+}
+````
+```bash
+ziad@ziadpc:~/toolchain_playground$ arm-cortex_a8-linux-gnueabihf-gcc  main.c -o notlinkingprogram
+ziad@ziadpc:~/toolchain_playground$ ls
+total 20K
+drwxrwxr-x 19 ziad ziad 4.0K Jun 12 15:47 crosstool-ng
+-rw-rw-r--  1 ziad ziad   74 Jun 12 18:10 main.c
+-rwxrwxr-x  1 ziad ziad  12K Jun 13 03:09 notlinkingprogram
+```
+its size is **12K**
+
+after statically linked 
+```bash
+ziad@ziadpc:~/toolchain_playground$ arm-cortex_a8-linux-gnueabihf-gcc  -static main.c -o statlinkingprogram
+ziad@ziadpc:~/toolchain_playground$ ls
+total 2.8M
+drwxrwxr-x 19 ziad ziad 4.0K Jun 12 15:47 crosstool-ng
+-rw-rw-r--  1 ziad ziad   74 Jun 12 18:10 main.c
+-rwxrwxr-x  1 ziad ziad  12K Jun 13 03:09 notlinkingprogram
+-rwxrwxr-x  1 ziad ziad 2.8M Jun 13 03:11 statlinkingprogram
+```
+see the difference of the static linked program and the non linked program `2.8M` and `12K`. since we didn't provide for which library the program will linked against it will be linked against C library by default.
+#### Create a static library
+creating a static library is same as creating an archieve of object files. The output of the library shouldn't be linked (i.e. the code should pass to assembler and stop there in other words use `-c` option in `gcc`).
+
+```c
+//program1.c
+#include "program1.h"
+int sum (int a, int b){
+    return a + b ;
+}
+```
+
+```c
+//program2.c
+#include "program2.h"
+int sub(int a, int b){
+    return a -b ;
+}
+```
+
+```c
+//main.c
+#include "program1.h"
+#include "program2.h"
+int main(){
+    int a = sum(2,3);
+    int b = sub(4,5);
+}
+```
+1. **Compile and Assemble every source file of the library by using -c option**
+
+```bash
+ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ arm-cortex_a8-linux-gnueabihf-gcc program1.c -c
+ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ arm-cortex_a8-linux-gnueabihf-gcc program1.c -c
+```
+2. **Archieve the object files using ar tool with options r(replace) c (create) s(add symbol table) and make the output ends with .a**
+
+```bash
+ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ arm-cortex_a8-linux-gnueabihf-ar rcs libtest.a  *.o #every object file
+```
+
+```bash
+ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ ls
+total 32K
+-rw-rw-r-- 1 ziad ziad 1.9K Jun 13 03:27 libtest.a
+-rw-rw-r-- 1 ziad ziad  102 Jun 13 03:28 main.c
+-rw-rw-r-- 1 ziad ziad   67 Jun 13 03:22 program1.c
+-rw-rw-r-- 1 ziad ziad   74 Jun 13 03:19 program1.h
+-rw-rw-r-- 1 ziad ziad  856 Jun 13 03:25 program1.o
+-rw-rw-r-- 1 ziad ziad   64 Jun 13 03:22 program2.c
+-rw-rw-r-- 1 ziad ziad   74 Jun 13 03:19 program2.h
+-rw-rw-r-- 1 ziad ziad  856 Jun 13 03:26 program2.o
+```
+
+3. **Compile main.c with the static library**
+```bash
+ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ arm-cortex_a8-linux-gnueabihf-gcc main.c  -o main.o -static  
+/home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/lib/gcc/arm-cortex_a8-linux-gnueabihf/13.2.0/../../../../arm-cortex_a8-linux-gnueabihf/bin/ld.bfd: /tmp/ccuBic5b.o: in function `main':
+main.c:(.text+0x14): undefined reference to `sum'
+/home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/lib/gcc/arm-cortex_a8-linux-gnueabihf/13.2.0/../../../../arm-cortex_a8-linux-gnueabihf/bin/ld.bfd: main.c:(.text+0x24): undefined reference to `sub'
+collect2: error: ld returned 1 exit status
+```
+without specifing libtest.a library
+
+```bash
+ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ arm-cortex_a8-linux-gnueabihf-gcc main.c  -o main.o -static  libtest.a 
+ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ ls
+total 2.8M
+-rw-rw-r-- 1 ziad ziad 1.9K Jun 13 03:27 libtest.a
+-rw-rw-r-- 1 ziad ziad  102 Jun 13 03:28 main.c
+-rwxrwxr-x 1 ziad ziad 2.8M Jun 13 03:46 main.o
+-rw-rw-r-- 1 ziad ziad   67 Jun 13 03:22 program1.c
+-rw-rw-r-- 1 ziad ziad   74 Jun 13 03:19 program1.h
+-rw-rw-r-- 1 ziad ziad  856 Jun 13 03:25 program1.o
+-rw-rw-r-- 1 ziad ziad   64 Jun 13 03:22 program2.c
+-rw-rw-r-- 1 ziad ziad   74 Jun 13 03:19 program2.h
+-rw-rw-r-- 1 ziad ziad  856 Jun 13 03:26 program2.o
+```
+
+check if it was statically linked by using the command `readelf -a` and grep for `Shared library`
+
+```bash
+ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ readelf -a main.o | grep "Shared lib"
+ 0x00000001 (NEEDED)                     Shared library: [libc.so.6]
+```
+
+only libc which is shared by default for every gcc compiled program (see the configuration section)
+
+you can add the include directory of the library and organize it into include directory out, and source directory as uploaded in the repo.
+```bash
+arm-cortex_a8-linux-gnueabihf-gcc main.c   -I libtest/include libtest/output/libtest.a 
+```
+
+Note: we can use `-l<library name without lib and .a>` instead of suppling the full library name and provide the library directory as follows:
+```bash
+arm-cortex_a8-linux-gnueabihf-gcc main.c   -I libtest/include -ltest -L libtest/output/
+```
+```
+libtest.a -> test
+```
+### 5.2 Shared/Dynamic Libraries
+unlike static libraries, shared libraries are linked to the source code during runtime which allows:
+* better use of memory since it removes the duplication of the same library across different programs by providing one copy to link all programs with it
+* easy to update libraries without recompile the programs
+
+#### Linking to shared library
+as we did in the static compilation; the output of the library source code should be assembled without being linked, here in addition of being not linked, the object code should be **P**osition **I**ndependent, so it is free to the run time linker/loader to locate it to next free address. this is achieved by add the option -fPIC (**P**osition **I**ndependent **C**ode)
+
+the structure of library directory is:
+```
+libtest/include:
+-rw-rw-r-- 1 ziad ziad 74 Jun 13 03:19 program1.h
+-rw-rw-r-- 1 ziad ziad 74 Jun 13 03:19 program2.h
+
+libtest/output:
+-rw-rw-r-- 1 ziad ziad 1.9K Jun 13 03:54 libtest.a
+-rw-rw-r-- 1 ziad ziad  856 Jun 13 03:52 program1.o
+-rw-rw-r-- 1 ziad ziad  856 Jun 13 03:53 program2.o
+
+libtest/source:
+-rw-rw-r-- 1 ziad ziad 78 Jun 13 03:51 program1.c
+-rw-rw-r-- 1 ziad ziad 75 Jun 13 03:53 program2.c
+```
+
+1. **Compile and Assemble every source file of the library by using -c and -fPIC options**
+```bash
+ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ arm-cortex_a8-linux-gnueabihf-gcc libtest/source/pr
+ogram1.c -fPIC -c -o libtest/output/program1.pio
+ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ arm-cortex_a8-linux-gnueabihf-gcc libtest/source/program2.c -fPIC -c -o libtest/output/program2.pio
+```
+
+2. **Compile the object files to single shared library with the option -shared and make the output ends with .so**
+```bash
+ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ arm-cortex_a8-linux-gnueabihf-gcc -shared -o libtest/output/libtest.so libtest/output/*.pio
+```
+
+3. **Compile main.c against the dynamic library and compare the size of both files**
+
+same as static linking
+```bash
+arm-cortex_a8-linux-gnueabihf-gcc main.c   -I libtest/include libtest/output/libtest.so -L libtest/output/ -o program.dynlnk
+```
+Note: here I didn't use `-ltest` option because I have aleardy libtest.a, so to avoid confusing I prefered to use the full name of the library.
+
+4. **Check the Linked Library**
+```bash
+ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ readelf -a program.dynlnk | grep "Shared lib"
+ 0x00000001 (NEEDED)                     Shared library: [libtest/output/libtest.so]
+ 0x00000001 (NEEDED)                     Shared library: [libc.so.6]
+```
+
+#### Understanding shared library version numbers
+
+
 
 
 ## 10- Additional Information
