@@ -1051,7 +1051,25 @@ ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code sam
  0x00000001 (NEEDED)                     Shared library: [libc.so.6]
 ```
 
+#### Load a shared library
+the os start a sytem loader/runtime linker, on executing `program.dynlnk` the loader will search for the required libraries in the  `/lib` and `/usr/lib` directories and will search in the paths in `LD_LIBRARY_PATH` shell variable -if set- .
+to add a directory path for a library to `LD_LIBRARY_PATH` use the following command
+```bash
+$ export LD_LIBRARY_PATH=/opt/lib:/opt/usr/lib:<yourpath\>
+```
+
+> Note: paths are colon-separated
+
+![flowchart](httpds://i.ibb.co/hLQ3Ztm/flo-drawio-1.png)
+
 #### Understanding shared library version numbers
+since libraries may be updated, it may break its compatibility with existing applications, hence we need a label to give information about the version of the library and its compatibility. This is the library version number.
+
+Library updates have two types:   
+* Upadates to add new features or fix bugs, which maintain the backwards compatibility
+* Updates that break the backwards compatibility
+
+
 
 
 
