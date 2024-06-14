@@ -1,6 +1,47 @@
 # Toolchains
 in this chapter, an explanation of toolchains will be introduced in addition to working examples to generate a toolchain for `Qemu` (an emulator) and `BeagleBone Black`.
 
+- [Toolchains](#toolchains)
+  - [1. Introduction](#1-introduction)
+    - [1.1 Toolchain components](#11-toolchain-components)
+    - [1.2 Target of a toolchain](#12-target-of-a-toolchain)
+    - [1.3 CPU architectures and toolchain names](#13-cpu-architectures-and-toolchain-names)
+    - [1.4 The C-library](#14-the-c-library)
+      - [Choosing C libraries](#choosing-c-libraries)
+  - [2. Finding a toolchain](#2-finding-a-toolchain)
+    - [2.1 Pre-built toolchains](#21-pre-built-toolchains)
+    - [2.2 Customized toolchains](#22-customized-toolchains)
+  - [3. Building a toolchain using crosstool-NG](#3-building-a-toolchain-using-crosstool-ng)
+    - [3.1 The Story of crosstool and crosstool-NG](#31-the-story-of-crosstool-and-crosstool-ng)
+    - [3.2 Downloading and Installing crosstool-NG](#32-downloading-and-installing-crosstool-ng)
+    - [3.3 Building a toolchain for BeagleBone Black](#33-building-a-toolchain-for-beaglebone-black)
+    - [3.4 Building a toolchain for Qemu](#34-building-a-toolchain-for-qemu)
+  - [4. Anatomy of a toolchain](#4-anatomy-of-a-toolchain)
+    - [4.1 Test the generated toolchain](#41-test-the-generated-toolchain)
+    - [4.2 Find out about the compiler](#42-find-out-about-the-compiler)
+    - [4.3 The sysroot, library, and header files](#43-the-sysroot-library-and-header-files)
+    - [4.4 Other tools in the toolchain](#44-other-tools-in-the-toolchain)
+    - [4.5 Components of the C library](#45-components-of-the-c-library)
+  - [5. Static and Shared Libraries and linking with them](#5-static-and-shared-libraries-and-linking-with-them)
+    - [5.1 Static Libraries](#51-static-libraries)
+      - [When to use the static library](#when-to-use-the-static-library)
+      - [Compile against a static library](#compile-against-a-static-library)
+      - [Create a static library](#create-a-static-library)
+    - [5.2 Shared/Dynamic Libraries](#52-shareddynamic-libraries)
+      - [Linking to shared library](#linking-to-shared-library)
+      - [Load a shared library](#load-a-shared-library)
+      - [Understanding shared library version numbers](#understanding-shared-library-version-numbers)
+  - [6. The art of cross-compiling](#6-the-art-of-cross-compiling)
+    - [6.1 Makefiles](#61-makefiles)
+    - [6.2 Autotools](#62-autotools)
+      - [An example – SQLite](#an-example-sqlite)
+    - [6.3 Autotools; Package configuration](#63-autotools-package-configuration)
+    - [6.4 Problems with cross-compiling](#64-problems-with-cross-compiling)
+  - [7. Additional Information](#7-additional-information)
+    - [7.1- POSIX](#71-posix)
+    - [7.2 -API and interfaces](#72-api-and-interfaces)
+    - [7.3- Application binary interface](#73-application-binary-interface)
+
 **Why is toolchain important for an Embedded Linux project**
 
 For an Embedded Linux project, The toolchain is the first element of embedded Linux and the starting point of the project. it will use be to compile all the other elements of the embedded Linux system on the target device which are:
@@ -11,7 +52,7 @@ For an Embedded Linux project, The toolchain is the first element of embedded Li
 The choices of toolchains at this early will have a profound impact on the final outcome. Since a toolchain should be:
 * capable of making effective use of the target hardware by using the **optimum instruction set** for the target processor
 * It should support the languages that the target requires
-* have a solid implementation of the Portable Operating System Interface (POSIX) and other system interfaces, hint you can read more about POSIX in the [Additional Information](#10--additional-information) section
+* have a solid implementation of the Portable Operating System Interface (POSIX) and other system interfaces, hint you can read more about POSIX in the [Additional Information](#7-additional-information) section
 
 to get a toolchain, there are different methods some of them are:
 * get a prebuilt toolchain, either by downloading and installing it, or probably inside the Board Support Package shipped with the target hardware platform by the vendor
@@ -33,7 +74,7 @@ sudo apt-get install autoconf automake bison bzip2 cmake  flex g++ gawk gcc get
 
 if you don't have the beaglebone black you can use the Qemu emulator
 
-## 1- Introduction
+## 1. Introduction
  toolchain is a set of distinct software development tools that are linked (or chained) together by specific stages such as GCC, binutils, and glibc. Optionally, a toolchain may contain other tools such as a debugger or a compiler for a specific programming language, such as C++.<br>
 
 **Versions of Toolchains**
@@ -75,7 +116,7 @@ They all use a common backend (the phases of the compiler that  that produces as
 
 3- **C library**
 
-C library implements the standardized application program interface (API) POSIX specification, which is the main interface to the operating system and provides higher-level services. (see additional information section for more about API and interfaces []()), it will be discussed further in this section.
+C library implements the standardized application program interface (API) POSIX specification, which is the main interface to the operating system and provides higher-level services. (see additional information section for more about API and interfaces [additional information](#7-additional-information)), it will be discussed further in this section.
 
 
 * glibc 
@@ -149,7 +190,7 @@ the toolchain has to be built according to the all capabilities of the target CP
 
 • **Floating point support**: Not all versions of embedded processors implement a hardware floating-point unit, in which case the toolchain has to be configured to call a software floating-point library instead
 
-• **Application Binary Interface (ABI)**: The calling convention used for passing parameters between function calls at the binary level and (see [ABI](#10.3--applicationbinaryinterface) in the additional information section) 
+• **Application Binary Interface (ABI)**: The calling convention used for passing parameters between function calls at the binary level and (see [ABI](#73-application-binary-interface) in the additional information section) 
 
 With many architectures, the ABI is constant across the family of processors. One notable exception is ARM. The ARM architecture transitioned to the Extended Application Binary Interface (EABI) in the late 2000s, resulting in the previous ABI being named the Old Application Binary Interface (OABI).
 
@@ -183,7 +224,7 @@ as mentioned before and shown and the name consists of the following parts:
 * Operating System: the kernel of the OS `Linux` and `w64`
 * ABI: for Linux is `gnu` and for Windows is MinGW - Minimalist GNU for Windows `mingw32`
 
-a detailed description of ABI is available in the additional information section below.
+a detailed description of ABI is available in the additional information [section below](#73-application-binary-interface). 
 
 
 ### 1.4 The C-library
@@ -202,7 +243,7 @@ int main() {
 ```
 a very simple function that is independent of OS, which is responsible for managing files. but how is it possible for this simple function to open a file independent of OS with this simplicity?  the answer is in the C library. The function ` fopen(filename, "r");` is implemented in C-Library to do the process of opening a file in the target OS. 
 
-In this example Linux is used; the request to the Linux kernel to open a file and return it is performed in certain steps with defined inputs and outputs to/from the kernel (see steps in POSIX subsection in the additional information section). But if every operating system defines its steps and input/output for such an operation it will be a headache to write a library for every OS to be compatible with.
+In this example Linux is used; the request to the Linux kernel to open a file and return it is performed in certain steps with defined inputs and outputs to/from the kernel (see steps in [POSIX](#71-posix) subsection in the additional information section). But if every operating system defines its steps and input/output for such an operation it will be a headache to write a library for every OS to be compatible with.
 
 fortunately, a family of OS implements common standards called the Portable Operating System Interface standards (POSIX standards) such as Linux, Mac, QNX, and others which standardize the steps and process of communication between applications (called user-space) and the kernel (kernel space) via a common system call, all of these new terms will be discussed in another chapter.
 
@@ -293,16 +334,16 @@ yaourt -S gcc-linaro-arm-linux-gnueabihf
 
 toolchains are a series of programs and libraries that can be built, but building a toolchain from scratch is not an easy task. you read about it from [cross Linux from scratch](https://trac.clfs.org/). however, there is a tool that encapsulates make files and scripts for building toolchains and lets the user configure these scripts and make files to customize the output toolchain via a menu interface or by choosing from samples to build a toolchain. this tool is called **Crosstool-ng**. 
 
-## 3. Building a toolchain using crosstool-NG
+## 3. Building a toolchain using crosstool NG
 in this section, a toolchain is created for beaglebone black and Qemu. this section may be grouped with other sections from different articles into a separate article that shows the practical steps for customization of an image for Qemu and beaglebone black.
 
-### 3.1 History of crosstool and crosstool-NG
+### 3.1 The Story of crosstool and crosstool NG
 building, updating, and maintaining a toolchain from scratch is a hard task. for that, on the community of the cross-compiler, the developers are uploading their scripts trying to automate some tasks of building and testing a toolchain. a programmer was responsible for the maintenance of a toolchain in his work and was searching for a solution for automating his process. he collected the scripts and made files from the community and added some advanced features including support for newer versions of toolchains and the ability to automate testing and created a standalone tool that automates the generation of toolchain and he called it the **crosstool**, his name is Dan Kegel you can read about his full story from [here](http://kegel.com/crosstool/).
 
 the crosstool didn't support the generation of all compilers, so in late 2007 Yann E. Morin added the support for uClibc and other features including a menu interface that makes users do the configuration via a menu and called this the new generation of the toolchain, or **crosstool-NG**, read about the full story from [here](https://crosstool-ng.github.io/docs/introduction/) or visit their [website](https://crosstool-ng.github.io/).
 
 
-### 3.2 Downloading and Installing crosstool-NG
+### 3.2 Downloading and Installing crosstool NG
 
 before downloading and installing crosstool-NG, you should install the tools stated at the beginning of the section.
 
@@ -362,7 +403,7 @@ Status  Sample name
 [L...]   aarch64-unknown-linux-uclibc
 [L...]   alphaev56-unknown-linux-gnu
 ....
-# the rest of the output is left over
+#the rest of the output is left over
 ....
  L (Local)       : sample was found in current directory
  G (Global)      : sample was installed with crosstool-NG
@@ -377,7 +418,7 @@ ziad@ziadpc:~/toolchain_playground/crosstool-ng$ ./ct-ng aarch64-ol7u9-linux-gnu
 
 CONF  aarch64-ol7u9-linux-gnu
 #
-# configuration written to .config
+#configuration written to .config
 #
 
 ***********************************************************
@@ -454,7 +495,7 @@ ziad@ziadpc:~/toolchain_playground/crosstool-ng$ ./ct-ng arm-cortex_a8-linux-gnu
 
 CONF  arm-cortex_a8-linux-gnueabi
 #
-# configuration written to .config
+#configuration written to .config
 #
 
 ***********************************************************
@@ -536,7 +577,7 @@ a complete description and installation instructions of qemu is available in the
 
 On the QEMU target, you will be emulating an ARM-versatile PB evaluation board that has an ARM926EJ-S processor core, which implements the ARMv5TE instruction set and 32-bit. You need to generate a crosstool-NG toolchain that matches the specification. The procedure is very similar to the one for the BeagleBone Black.
 
-![processor](https:2//documentation-service.arm.com/static/5e8e3d1088295d1e18d3a97a?token=)
+![processor](https://documentation-service.arm.com/static/5e8e3d1088295d1e18d3a97a?token=)
 
 before choosing from samples, we will define some points:
 
@@ -580,7 +621,7 @@ ziad@ziadpc:~/toolchain_playground/crosstool-ng$ ./ct-ng  distclean
 ziad@ziadpc:~/toolchain_playground/crosstool-ng$ ./ct-ng arm-unknown-linux-gnueabi
   CONF  arm-unknown-linux-gnueabi
 #
-# No change to .config
+#No change to .config
 #
 
 ***********************************************************
@@ -611,7 +652,7 @@ ct-ng build
 ```
 
 ## 4. Anatomy of a toolchain
-in this section we will discover the generated files in the toolchain, the generated files in `x-tools/arm-cortex_a8-linux-gnueabihf/` or `x-tools/arm-unknown-linux-gnueabi/` in case of toolchain for beaglebone black or Qemu.
+in this section, we will discover the generated files in the toolchain, the generated files in `x-tools/arm-cortex_a8-linux-gnueabihf/` or `x-tools/arm-unknown-linux-gnueabi/` in the case of the toolchain for beaglebone black or Qemu.
 
 ### 4.1 Test the generated toolchain
 
@@ -652,7 +693,7 @@ ziad@ziadpc:~/x-tools/arm-cortex_a8-linux-gnueabihf/bin$ arm-cortex_a8-linux-gnu
 arm-cortex_a8-linux-gnueabihf-gcc: fatal error: no input files
 compilation terminated.
 ```
-it should output something like this. in case of failure double check the path of the output of crosstool-ng and check the exsitnace of gcc in the directory as I did in the previous step.
+it should output something like this. In case of failure double-check the path of the output of crosstool-ng and check the existence of gcc in the directory as I did in the previous step.
 
 **Test the compilation**:
 
@@ -661,8 +702,8 @@ we will use a simple program:
 //main.c
 #include <stdio.h>
 int main(){
-	printf("Hello World! \n");
-	return 0 ;
+    printf("Hello World! \n");
+    return 0 ;
 }
 ```
 
@@ -677,7 +718,7 @@ drwxrwxr-x 19 ziad ziad 4.0K Jun 12 15:47 crosstool-ng
 -rw-rw-r--  1 ziad ziad   74 Jun 12 18:10 main.c
 ```
 
-execute it on x86 machine
+execute it on an x86 machine
 ```
 ziad@ziadpc:~/toolchain_playground$ ./helloworld.arm 
 bash: ./helloworld.arm: cannot execute binary file: Exec format error
@@ -688,12 +729,12 @@ ziad@ziadpc:~/toolchain_playground$ file helloworld.arm
 helloworld.arm: ELF 32-bit LSB executable, ARM, EABI5 version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-armhf.so.3, for GNU/Linux 6.4.0, with debug_info, not stripped
 ```
 
-### 4.2 Find about the compiler
-from the previous command we see that the compiler compiles the source code with some configurations, what are the configurations of the compiler and how to set them for specific out, that will be introduced in this section.
+### 4.2 Find out about the compiler
+from the previous command we see that the compiler compiles the source code with some configurations, what are the configurations of the compiler, and how to set them for specific out, which will be introduced in this section.
 
 **Finding Information about a compiler**:
 
-in case of you are working with a new compiler and you want to know about it. use the following command
+in case you are working with a new compiler and you want to know about it. use the following command
 
 ```
 arm-cortex_a8-linux-gnueabihf-gcc --version
@@ -733,14 +774,14 @@ Configurations to check:
 * --with-float=hard: Generates opcodes for the floating-point unit and uses the VFP registers for parameters.
 * --enable-threads=posix: This enables the POSIX threads.
 
-these are default settings for a compiler, for overriding these configuration you can use command line. for example for compiling to cortex-a5 instead of cortex-a8:
+these are default settings for a compiler, for overriding these configurations you can use the command line. for example for compiling to cortex-a5 instead of cortex-a8:
 
 ```bash
 ziad@ziadpc:~/toolchain_playground$ arm-cortex_a8-linux-gnueabihf-gcc -mcpu=cortex-a5 main.c -o hello.arma5
 ```
 
 ### 4.3 The sysroot, library, and header files
-from the outputs of the toolchain is libraries, binaries, headers, and some configuration files, where are these files are stored? The answer is in the **sysroot** directory.
+from the outputs of the toolchain are libraries, binaries, headers, and some configuration files, where are these files stored? The answer is in the **sysroot** directory.
 
 to see the location of **sysroot** directory use the following:
 ```bash
@@ -780,39 +821,39 @@ drwxrwxr-x  7 ziad ziad 4.0K Jun 11 02:03 share
 
 * lib:
     
-    contains the shared objects (`.o`) for the C Library and the dynamic linker/loader, `ld-linux`
+ contains the shared objects (`.o`) for the C Library and the dynamic linker/loader, `ld-linux`
 
 * sbin:
 
-    provides the ldconfig utility that used for optimizing library loading path
+ provides the ldconfig utility that is used for optimizing the library loading path
 
 * usr/bin: 
 
-    contains the binaries utilities that are compiled to the target (to run on the target)
-    ```bash
+ contains the utilities that are compiled to the target (to run on the target)
+ ```bash
     ziad@ziadpc:~/toolchain_playground$ file /home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/arm-cortex_a8-linux-gnueabihf/sysroot/usr/bin/clear
 /home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/arm-cortex_a8-linux-gnueabihf/sysroot/usr/bin/clear: ELF 32-bit LSB executable, ARM, EABI5 version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-armhf.so.3, for GNU/Linux 6.4.0, stripped
-    ```
+ ```
 
 * usr/include:
     
-    contains the header files for all the libraries
+ contains the header files for all the libraries
 
 * usr/lib:
     
-    contains the static libraries and other installed libraries by the user
+ contains the static libraries and other installed libraries by the user
 
 * usr/share:
 
-    used for localization and internationalization
+ used for localization and internationalization
 
 as shown some of these tools should be deployed into the target.
 
 ### 4.4 Other tools in the toolchain
 you can find them in `~/x-tools/arm-cortex_a8-linux-gnueabihf/bin`
 
-* `addr2line`: Converts program addresses into filenames and numbers by reading the debug symbol tables in an executable file. It is very useful when decoding addresses printed out in a system crash report.
-* `ar`: The archive utility is used to create static libraries.
+* `addr2line`: Converts program addresses into filenames and numbers by reading the debug symbol tables in an executable file. It is beneficial when decoding addresses printed out in a system crash report.
+* `ar`: The archive utility creates static libraries.
 * `as`: This is the GNU assembler.
 * `c++filt`: This is used to demangle C++ and Java symbols.
 * `cpp`: This is the C preprocessor and is used to expand #define, #include, and other similar directives. You seldom need to use this by itself.
@@ -847,37 +888,37 @@ total 28K
 ```
 
 ### 4.5 Components of the C library
-C- library isn't a single library file, it consists from 4-parts implementaing POSIX standards which are:
+C- library isn't a single library file, it consists of 4-parts implementing POSIX standards which are:
 
 1. **libc**: the main C library that contains the well-known POSIX functions such as `printf`, `open`, `close`
 2. **libm**: the math library that contains the math functions such as `cos`, `exp`, and `log`
-3. **libpthread**: contains all the POSIX thread functions with their names begins with `pthread_`
-4. **librt**: the realtime library, it has the extensopm to POSIX including shared memory and asynchronous I/O
+3. **libpthread**: contains all the POSIX thread functions with their names beginning with `pthread_`
+4. **librt**: the real-time library, has an extension to POSIX including shared memory and asynchronous I/O
 
 ## 5. Static and Shared Libraries and linking with them
-programs are compiled and linked with the C Library, also programs are linked with other libraries. the linking is done via two approachs; the static linking and the dynamic/shared linking.
-the static linking means that the output program is packaged with the library in the same executable, while the dynamic linking means that the output program depends on the library but not compiled with it, it links to it in the runtime.
+programs are compiled and linked with the C Library, also programs are linked with other libraries. the linking is done via two approaches; static linking and dynamic/shared linking.
+static linking means that the output program is packaged with the library in the same executable, while dynamic linking means that the output program depends on the library but is not compiled with it, it links to it in the runtime.
 
 ### 5.1 Static Libraries
-the output program contains its code and addedd to it the used code of the library. its libraries ends with `.a`.
+The output program contains its code and adds to it the used code of the library. its libraries end with `.a`.
 
-The statically linked program runs faster than dynamic linked programs since there is no overhead of loading the library, but its size will be larger than the dynamically linked program.
+The statically linked program runs faster than dynamically linked programs since there is no overhead of loading the library, but its size will be larger than the dynamically linked program.
 
 #### When to use the static library
 
-1. when the linked library is small sized, so no overhead of loading the library in the runtime
-2. when you need to run the program before the filesystem that holds library is loaded, or before the os starts the runtime linker/loader
-3. when you need to link a small part from the library to the program rather than linking the whole library
+1. when the linked library is small-sized, so no overhead of loading the library in the runtime
+2. when you need to run the program before the filesystem that holds the library is loaded, or before the OS starts the runtime linker/loader
+3. when you need to link a small part of the library to the program rather than linking the whole library
 
-#### Compile against static library
+#### Compile against a static library
 in the following example we will link a code with a static library.
 to compile statically use the option `-static`
 ```c 
 //main.c
 #include <stdio.h>
 int main(){
-	printf("Hello World! \n");
-	return 0 ;
+    printf("Hello World! \n");
+    return 0 ;
 }
 ````
 ```bash
@@ -900,9 +941,9 @@ drwxrwxr-x 19 ziad ziad 4.0K Jun 12 15:47 crosstool-ng
 -rwxrwxr-x  1 ziad ziad  12K Jun 13 03:09 notlinkingprogram
 -rwxrwxr-x  1 ziad ziad 2.8M Jun 13 03:11 statlinkingprogram
 ```
-see the difference of the static linked program and the non linked program `2.8M` and `12K`. since we didn't provide for which library the program will linked against it will be linked against C library by default.
+see the difference between the statically linked program and the nonlinked program `2.8M` and `12K`. since we didn't provide for which library the program will linked against it will be linked against the C library by default.
 #### Create a static library
-creating a static library is same as creating an archieve of object files. The output of the library shouldn't be linked (i.e. the code should pass to assembler and stop there in other words use `-c` option in `gcc`).
+creating a static library is the same as creating an archive of object files. The output of the library shouldn't be linked (i.e. the code should pass to the assembler and stop there in other words use `-c` option in `gcc`).
 
 ```c
 //program1.c
@@ -935,7 +976,7 @@ int main(){
 ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ arm-cortex_a8-linux-gnueabihf-gcc program1.c -c
 ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ arm-cortex_a8-linux-gnueabihf-gcc program1.c -c
 ```
-2. **Archieve the object files using ar tool with options r(replace) c (create) s(add symbol table) and make the output ends with .a**
+2. **Archive the object files using ar tool with options r(replace) c (create) s(add symbol table) and make the output ends with .a**
 
 ```bash
 ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ arm-cortex_a8-linux-gnueabihf-ar rcs libtest.a  *.o #every object file
@@ -962,7 +1003,7 @@ main.c:(.text+0x14): undefined reference to `sum'
 /home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/lib/gcc/arm-cortex_a8-linux-gnueabihf/13.2.0/../../../../arm-cortex_a8-linux-gnueabihf/bin/ld.bfd: main.c:(.text+0x24): undefined reference to `sub'
 collect2: error: ld returned 1 exit status
 ```
-without specifing libtest.a library
+without specifying libtest.a library
 
 ```bash
 ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ arm-cortex_a8-linux-gnueabihf-gcc main.c  -o main.o -static  libtest.a 
@@ -988,12 +1029,12 @@ ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code sam
 
 only libc which is shared by default for every gcc compiled program (see the configuration section)
 
-you can add the include directory of the library and organize it into include directory out, and source directory as uploaded in the repo.
+you can add the include directory of the library and organize it into the include directory out, and the source directory as uploaded in the repo.
 ```bash
 arm-cortex_a8-linux-gnueabihf-gcc main.c   -I libtest/include libtest/output/libtest.a 
 ```
 
-Note: we can use `-l<library name without lib and .a>` instead of suppling the full library name and provide the library directory as follows:
+Note: we can use `-l<library name without lib and .a>` instead of supplying the full library name and provide the library directory as follows:
 ```bash
 arm-cortex_a8-linux-gnueabihf-gcc main.c   -I libtest/include -ltest -L libtest/output/
 ```
@@ -1002,13 +1043,13 @@ libtest.a -> test
 ```
 ### 5.2 Shared/Dynamic Libraries
 unlike static libraries, shared libraries are linked to the source code during runtime which allows:
-* better use of memory since it removes the duplication of the same library across different programs by providing one copy to link all programs with it
-* easy to update libraries without recompile the programs
+* Better use of memory since it removes the duplication of the same library across different programs by providing one copy to link all programs with it
+* easy to update libraries without recompiling the programs
 
 #### Linking to shared library
-as we did in the static compilation; the output of the library source code should be assembled without being linked, here in addition of being not linked, the object code should be **P**osition **I**ndependent, so it is free to the run time linker/loader to locate it to next free address. this is achieved by add the option -fPIC (**P**osition **I**ndependent **C**ode)
+as we did in the static compilation; the output of the library source code should be assembled without being linked, here in addition to being not linked, the object code should be **P**osition **I**ndependent, so it is free to the run time linker/loader to locate it to next free address. this is achieved by adding the option -fPIC (**P**osition **I**ndependent **C**ode)
 
-the structure of library directory is:
+the structure of the library directory is:
 ```
 libtest/include:
 -rw-rw-r-- 1 ziad ziad 74 Jun 13 03:19 program1.h
@@ -1031,7 +1072,7 @@ ogram1.c -fPIC -c -o libtest/output/program1.pio
 ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ arm-cortex_a8-linux-gnueabihf-gcc libtest/source/program2.c -fPIC -c -o libtest/output/program2.pio
 ```
 
-2. **Compile the object files to single shared library with the option -shared and make the output ends with .so**
+2. **Compile the object files to a single shared library with the option -shared and make the output end with .so**
 ```bash
 ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code samples$ arm-cortex_a8-linux-gnueabihf-gcc -shared -o libtest/output/libtest.so libtest/output/*.pio
 ```
@@ -1042,7 +1083,7 @@ same as static linking
 ```bash
 arm-cortex_a8-linux-gnueabihf-gcc main.c   -I libtest/include libtest/output/libtest.so -L libtest/output/ -o program.dynlnk
 ```
-Note: here I didn't use `-ltest` option because I have aleardy libtest.a, so to avoid confusing I prefered to use the full name of the library.
+Note: here I didn't use the `-ltest` option because I have already libtest.a, so to avoid confusion I preferred to use the full name of the library.
 
 4. **Check the Linked Library**
 ```bash
@@ -1052,7 +1093,7 @@ ziad@ziadpc:~/Customize Linux Image/CH02 all about toolchains/Toolchain/code sam
 ```
 
 #### Load a shared library
-the os start a sytem loader/runtime linker, on executing `program.dynlnk` the loader will search for the required libraries in the  `/lib` and `/usr/lib` directories and will search in the paths in `LD_LIBRARY_PATH` shell variable -if set- .
+The OS starts a system loader/runtime linker, on executing `program. dynlnk` the loader will search for the required libraries in the  `/lib` and `/usr/lib` directories and will search in the paths in the `LD_LIBRARY_PATH` shell variable -if set-.
 to add a directory path for a library to `LD_LIBRARY_PATH` use the following command
 ```bash
 $ export LD_LIBRARY_PATH=/opt/lib:/opt/usr/lib:<yourpath\>
@@ -1060,22 +1101,328 @@ $ export LD_LIBRARY_PATH=/opt/lib:/opt/usr/lib:<yourpath\>
 
 > Note: paths are colon-separated
 
-![flowchart](httpds://i.ibb.co/hLQ3Ztm/flo-drawio-1.png)
+
+![flowchart](https://i.ibb.co/hLQ3Ztm/flo-drawio-1.png)
 
 #### Understanding shared library version numbers
-since libraries may be updated, it may break its compatibility with existing applications, hence we need a label to give information about the version of the library and its compatibility. This is the library version number.
+since libraries may be updated, it may break its compatibility with existing applications, hence we need to have information about the compatibility of the library. This information is called the library **release version**.
 
 Library updates have two types:   
-* Upadates to add new features or fix bugs, which maintain the backwards compatibility
-* Updates that break the backwards compatibility
+
+* Updates to add new features or fix bugs, which maintains the backward compatibility
+* Updates that break the backward compatibility
+
+the term **backward compatibility** means that when an application is linked against a shared library version if the update of the library is backward compatible then the application can run against the updated library without any code modifications or potential errors. However, if the update isn't backwards compatible then the application may throw errors in runtime or on compilation (if the developer decides to rebuild it).
+
+the release version is something like this `6.4` at the end of the library name such as `libncurses.so.6.4`.
+
+in release version `6.4.0`:
+
+* (6) **Major revision/Interface number**: this version does not support backward compatibility with older versions (e.g. 6.0 is not compatible with 5.0). this number is called 
+
+* (4) **Minor revision**: maybe a feature added, collection of bug fixes, hence it supports backward compatibility with older Minor versions (e.g. 6.4 compatible 6.2 )
+
+* (0) **Bug fix release**
+
+So the most important number from them for a runtime linker is the **interface number**.
+
+**How does the runtime linker handle different library versions and their dependencies?**
+
+1. every library has an attribute called **SONAME**, which returns the release version with the interface number only.
+```bash
+ziad@ziadpc:~/x-tools/arm-cortex_a8-linux-gnueabihf/arm-cortex_a8-linux-gnueabihf/sysroot/usr/lib$ readelf -a libform.so | grep "SONAME"
+ 0x0000000e (SONAME)                     Library soname: [libform.so.6]
+```
+2. a linked program requests the interface number of its linked library only, since any minor revision or bug fixes will work with the program
+
+3. a program requests `libform.6`, so the runtime linker will search in its known directories (e.g. `usr/bin`) and search for the `libform` file between symbolic link files
 
 
+4. after successfully finding the `libform.6` symbolic link file, the linker will follow this link and load the actual file
+
+```
+libform.so.6 -> libform.so.6.4
+```
+
+Note: `libform.so.6` symlink is searched instead of `libform.so.6.4` actual file, because `libform.so.6.4` may be continuously updated, then its minor numbers will be changed. instead the `libform.so.6` will change in case of a major update.
+
+that's why for a library we have at least four files for it in the usr/lib directory
+
+```bash
+ziad@ziadpc:~/x-tools/arm-cortex_a8-linux-gnueabihf/arm-cortex_a8-linux-gnueabihf/sysroot/usr/lib$ ls | grep libform
+-rw-r--r-- 1 ziad ziad 115K Jun 11 01:36 libform.a
+lrwxrwxrwx 1 ziad ziad   12 Jun 11 01:36 libform.so -> libform.so.6
+lrwxrwxrwx 1 ziad ziad   14 Jun 11 01:36 libform.so.6 -> libform.so.6.4
+-rwxrwxr-x 1 ziad ziad  92K Jun 11 01:36 libform.so.6.4
+```
+
+**What if a program requests an older version of the library**
+1. the `usr/lib` directory may contain more than one version of a library
+2. the runtime linker will search for the appropriate **SONAME** to link against
+3. on finding the appropriate version the runtime linker will follow the symbolic link to load the file.
+
+**General Searching Steps:**
+
+![flowchart](https://i.ibb.co/W6V0WCs/fc-drawio.png)
 
 
+## 6. The art of cross compiling
+executing cross-compilation from the terminal can't scale beyond a toy program. to use cross-compilation effectively a build system should be used.
+
+In this section, the following buildsystems are introduced:
+
+* Makefiles
+* GNU Autotools
+* CMake
+
+### 6.1 Makefiles
+
+The Make utility is a software tool for managing and maintaining computer programs consisting of many component files. The make utility automatically determines which pieces of a **large program** need to be recompiled, and issues commands to recompile them. Makefile is a way of automating software building procedures and other complex tasks with dependencies.
+
+Make reads its instruction from **Makefile** (called the descriptor file) by default.
+
+Makefile sets a set of rules to determine which parts of a program need to be recompiled, and issues a command to recompile them.
 
 
-## 10- Additional Information
-### 10.1- POSIX
+some packages are simply cross-compiled by the `make` utility, these packages include:
+* Linux kernel
+* U-Boot bootloader
+* BusyBox
+For each of these, you only need to put the toolchain prefix in the make variable `CROSS_COMPILE` or, you can set it as a shell variable
+
+**calling makefile with cross-compile**
+```bash
+make CROSS_COMPILE=arm-cortex_a8-linux-gnueabihf-
+```
+**Setting CROSS_COMPILE as a shell variable**
+```bash
+export CROSS_COMPILE=arm-cortex_a8-linux-gnueabihf-
+make
+```
+**Note**: *don't set the CORSS_CONFIG variable to be persistent among all shell sessions because it may conflict with other commands.*
+
+**Autotools** and **CMake** both generates makefile, except **CMake** supports other ways of building projects depending on which platform(s) is targeting (Linux in our case).
+
+### 6.2 Autotools
+The name Autotools refers to a group of tools that are used as the build system in many open-source projects. The components, together with the appropriate project pages, are as follows:
+
+* [GNU Autoconf](https://www.gnu.org/software/autoconf/autoconf.html)
+* [GNU Automake](https://www.gnu.orgsavannah-checkouts/gnu/automake/)
+* [GNU Libtool](https://www.gnu.org/software/libtool/libtool.html)
+* [Gnulib](https://www.gnu.org/software/gnulib/)
+
+Packages that use Autotools come with a script named `configure` (such that in crosstool-ng) that checks dependencies and generates makefiles according to what it finds. The configure script may also allow you to enable or disable certain features. You can find the options on offer by running `./configure --help`.
+
+To configure, build, and install a package for the native operating system, you would typically run the following three commands (as we did in crosstool-ng):
+```bash
+./configure
+make
+sudo make install
+```
+auto tools can be configured by setting these shell variables:
+* `CC`: The C compiler command.
+* `CFLAGS`: Additional C compiler flags.
+* `CXX`: The C++ compiler command.
+* `CXXFLAGS`: Additional C++ compiler flags.
+* `LDFLAGS`: Additional linker flags; for example, if you have libraries in a non-standard directory <lib dir>, you would add it to the library search path
+by adding -L<lib dir>.
+* `LIBS`: Contains a list of additional libraries to pass to the linker; for instance, -lm for the math library.
+* `CPPFLAGS`: Contains C/C++ preprocessor flags; for example, you would add -I<include dir> to search for headers in a non-standard directory <include dir>.
+* `CPP`: The C preprocessor to use.
+
+Sometimes you need to set the C-Compiler `CC` shell variable only as follows:
+```bash
+CC=arm-cortex_a8-linux-gnueabihf-gcc ./configure
+```
+you may encounter this error
+```bash
+[…]
+checking for suffix of executables...
+checking whether we are cross-compiling... configure: error: in
+'/home/ziad/sqlite-autoconf-3330000':
+configure: error: cannot run C compiled programs.
+If you meant to cross compile, use '--host'.
+See 'config.log' for more detail
+```
+The reason for the failure is that **configure often tries to discover the capabilities of the toolchain by compiling snippets of code and running them to see what happens**, which cannot work if the program has been cross-compiled.
+
+**Autotools understands three different types of machines that may be involved when compiling a package**:
+* Build: The computer that builds the package, which defaults to the current machine.
+* Host: The computer the program will run on. For a native compile, this is left blank and it defaults to be the same computer as Build. When you are cross-compiling, set it to be the name of your toolchain.
+* Target: The computer the program will generate code for. You would set this when building a cross-compiler.
+
+So to solve the previous issue do the following:
+>Pass --host=\<host> to configure when you are cross-compiling so that configure searches your system for the cross-compiling toolchain targeting the specified \<host> platform. That way, configure does not try to run snippets of non-native code as part of the configuration step.
+```bash
+CC=arm-cortex_a8-linux-gnueabihf-gcc ./configure --host=arm-cortex_a8-linux-gnueabihf
+```
+Note: the default installation directory is <sysroot>/usr/local/\*. not in the default directory of the OS, so you should install it in <sysroot>/usr/\* so that the header files and libraries would be picked up from their default locations.
+
+The complete command to configure a typical Autotools package is as follows:
+
+```bash
+CC=arm-cortex_a8-linux-gnueabihf-gcc ./configure --host=arm-cortex_a8-linux-gnueabihf --prefix=/usr
+```
+
+#### An example: SQLite
+in this section, we will build The SQLite library for beaglebone. SQLite implements a simple relational database and is quite popular on embedded devices and mobile phones. 
+
+1. **clone SQLite source code**
+
+```bash
+wget http://www.sqlite.org/2020/sqlite-autoconf-3330000.tar.gz
+tar xf sqlite-autoconf-3330000.tar.gz
+cd sqlite-autoconf-3330000
+```
+
+```bash
+ziad@ziadpc:~/toolchain_playground/sqlite$ wget http://www.sqlite.org/2020/sqlite-autoconf-3330000.tar.gz
+tar xf sqlite-autoconf-3330000.tar.gz
+cd sqlite-autoconf-3330000
+--2024-06-14 03:19:32--  http://www.sqlite.org/2020/sqlite-autoconf-3330000.tar.gz
+Resolving www.sqlite.org (www.sqlite.org)... 2600:3c00::f03c:91ff:fe96:b959, 45.33.6.223
+Connecting to www.sqlite.org (www.sqlite.org)|2600:3c00::f03c:91ff:fe96:b959|:80... failed: Connection timed out.
+Connecting to www.sqlite.org (www.sqlite.org)|45.33.6.223|:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 2913759 (2.8M) [application/x-gzip]
+Saving to: ‘sqlite-autoconf-3330000.tar.gz’
+
+sqlite-autoconf-3330000.tar.gz      100%[=================================================================>]   2.78M   807KB/s    in 4.2s    
+
+2024-06-14 03:21:53 (684 KB/s) - ‘sqlite-autoconf-3330000.tar.gz’ saved [2913759/2913759]
+```
+2. **Run the configuration script**
+
+set the options with our desired configurations.
+```bash
+CC=arm-cortex_a8-linux-gnueabihf-gcc ./configure --host=arm-cortex_a8-linux-gnueabihf --prefix=/usr
+```
+
+```bash
+ziad@ziadpc:~/toolchain_playground/sqlite/sqlite-autoconf-3330000$ CC=~/x-tools/arm-cortex_a8-linux-gnueabihf/bin/arm-cortex_a8-linux-gnueabihf-gcc ./configure --host=arm-cortex_a8-linux-gnueabihf --prefix=/usr
+checking for a BSD-compatible install... /usr/bin/install -c
+checking whether build environment is sane... yes
+checking for arm-cortex_a8-linux-gnueabihf-strip... no
+checking for strip... strip
+checking for a thread-safe mkdir -p... /usr/bin/mkdir -p
+checking for gawk... gawk
+checking whether make sets $(MAKE)... yes
+checking whether make supports nested variables... yes
+....
+```
+
+Make sure you are specifying the correct path of the C Compiler.
+
+3. **Run the make utility**
+
+since autotools don't generate executables but they generate makefiles then we will execute the make utility.
+
+```bash
+make
+```
+
+```bash
+ziad@ziadpc:~/toolchain_playground/sqlite/sqlite-autoconf-3330000$ make
+/bin/bash ./libtool  --tag=CC   --mode=compile /home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/bin/arm-cortex_a8-linux-gnueabihf-gcc -DPACKAGE_NAME=\"sqlite\" -DPACKAGE_TARNAME=\"sqlite\" -DPACKAGE_VERSION=\"3.33.0\"
+```
+
+4. **Install the library to the toolchain directory**
+
+by default, it will install into /usr/lib of the host machine not in the \<sysroot>/usr/lib directory which will be deployed into the target.
+
+```bash
+make DESTDIR=$(arm-cortex_a8-linux-gnueabihf-gcc -print-sysroot) install
+```
+
+```bash
+ziad@ziadpc:~/toolchain_playground/sqlite/sqlite-autoconf-3330000$ sudo make DESTDIR=$(arm-cortex_a8-linux-gnueabihf-gcc -print-sysroot) install
+make[1]: Entering directory '/home/ziad/toolchain_playground/sqlite/sqlite-autoconf-3330000'
+ /usr/bin/mkdir -p '/home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/arm-cortex_a8-linux-gnueabihf/sysroot/usr/lib'
+ /bin/bash ./libtool   --mode=install /usr/bin/install -c   libsqlite3.la '/home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/arm-cortex_a8-linux-gnueabihf/sysroot/usr/lib'
+libtool: install: /usr/bin/install -c .libs/libsqlite3.so.0.8.6 /home/ziad/x-tools/arm-cortex_a8-linux-gnueabihf/arm-cortex_a8-linux-gnueabihf/sysroot/usr/lib/libsqlite3.so.0.8.6
+....
+```
+
+If the command didn't succeed here are some reasons:
+1. check that cross-compile is added to the path
+ ```bash
+    PATH=~/x-tools/arm-cortex_a8-linux-gnueabihf/bin:$PATH
+ ```
+2. rerun with `sudo` command
+3. you didn't deselect the option of `render toolchain as read-only` while configuring the toolchain from the `crosstool-ng`
+
+to check if SQLite was successfully installed or not, you should find that various files have been added to your toolchain:
+* **\<sysroot>/usr/bin**: sqlite3: This is a command-line interface for SQLite that you can install and run on the target.
+* **\<sysroot>/usr/lib**: libsqlite3.so.0.8.6, libsqlite3.so.0, libsqlite3.so, libsqlite3.la, libsqlite3.a: These are the shared and static libraries.
+* **\<sysroot>/usr/lib/pkgconfig**: sqlite3.pc: This is the package configuration file, as described in the following section
+* **\<sysroot>/usr/lib/include**: sqlite3.h, sqlite3ext.h: These are the header files.
+* **\<sysroot>/usr/share/man/man1**: sqlite3.1: This is the manual page.
+
+
+### 6.3 Autotools; Package configuration
+the previous section was to build a package, but what if the package depends on another package, they should be cross-compiled also. Autotools relies on a utility called pkg-config to gather vital information about packages cross-compiled by Autotools.
+
+Tracking package dependencies is quite complex as shown in [Linux System admin repo](https://github.com/ziadasem/Linux-System-Admin/tree/main/2-%20Applications%20and%20package%20managment). The package configuration utility [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config/) helps in the following:
+* tracking which packages are installed 
+* which compile flags each package needs 
+
+by keeping a database of Autotools packages in [sysroot]/usr/lib/pkgconfig. For instance, the one for SQLite3 is named sqlite3.pc and contains essential information needed by other packages that need to make use of it:
+
+```bash
+cat $(arm-cortex_a8-linux-gnueabihf-gcc -print-sysroot)/usr/
+lib/pkgconfig/sqlite3.pc
+#Package Information for pkg-config
+prefix=/usr
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+Name: SQLite
+Description: SQL database engine
+Version: 3.33.0
+Libs: -L${libdir} -lsqlite3
+Libs.private: -lm -ldl -lpthread
+Cflags: -I${includedir}
+```
+You can use pkg-config to extract information in a form that you can feed straight to gcc. In the case of a library like libsqlite3, you want to know the library name (--libs) and any special C flags (--cflags):
+
+```bash
+pkg-config sqlite3 --libs --cflags
+Package sqlite3 was not found in the pkg-config search path.
+Perhaps you should add the directory containing 'sqlite3.pc'
+to the PKG_CONFIG_PATH environment variable
+No package 'sqlite3' found
+```
+
+That failed because it was looking in the host's sysroot and the development package for libsqlite3 has not been installed on the host. You need to point it at the sysroot of the target toolchain by setting the PKG_CONFIG_LIBDIR shell variable:
+```bash
+export PKG_CONFIG_LIBDIR=$(arm-cortex_a8-linux-gnueabihf-gcc -print-sysroot)/usr/lib/pkgconfig
+```
+```bash
+ziad@ziadpc:~/toolchain_playground/sqlite$ pkg-config sqlite3 --libs --cflags
+-lsqlite3
+```
+Now the output is -lsqlite3. In this case, you knew that already, but generally you wouldn't, so this is a valuable technique. The final commands to compile would be the following:
+```bash
+$ export PKG_CONFIG_LIBDIR=$(arm-cortex_a8-linux-gnueabihf-gcc \
+-print-sysroot)/usr/lib/pkgconfig
+$ arm-cortex_a8-linux-gnueabihf-gcc $(pkg-config sqlite3
+--cflags --libs) \
+sqlite-test.c -o sqlite-test
+```
+### 6.4 Problems with cross compiling
+
+sqlite3 is a well-behaved package and cross-compiles nicely, but not all packages are the same. Typical pain points include the following:
+* Some libraries have their own configuration script that does not behave like the Autotools such as `zlib` 
+* Configure scripts that read pkg-config information, headers, and other files from the host, disregarding the --host override
+* Scripts that insist on trying to run cross-compiled code
+
+Each case requires careful analysis of the error and additional parameters to the configure script to provide the correct information, or patches to the code to avoid the problem altogether. also keep in mind that one package may have many dependencies, especially with programs that have a graphical interface using `GTK` or `Qt`, or that handle multimedia content. As an example, `mplayer`, which is a popular tool for playing multimedia content, **has dependencies on over 100 libraries. It would take weeks of effort to build them all.**
+
+Therefore, It is not recommended to manually cross-compiling components for the target in this way, except when there is no alternative or the number of packages to build is small. A much better approach is to use a build tool such as Buildroot or the Yocto Project or avoid the problem altogether by setting up a native build environment for your target architecture.
+Now you can see why distributions such as Debian are always compiled natively.
+
+## 7. Additional Information
+### 7.1 POSIX
 POSIX is a family of standards specified by the IEEE for maintaining compatibility between operating systems.POSIX defines both the system and user-level **application programming interfaces** (APIs), along with command line shells and utility interfaces.
 
 **What does Standardization of POSIX provide?** 
@@ -1156,7 +1503,7 @@ The steps of opening a file that is abstracted by the `open` function are:
 
 
 
-### 10.2 -API and interfaces
+### 7.2 API and interfaces
 a good brief explanation of Interfaces and API on [Stack overflow](https://stackoverflow.com/questions/2171177/what-is-an-application-binary-interface-abi) states the following:
 
 **Interface**: <br>It is an "existing entity" layer between the functionality and consumer of that functionality. An interface by itself doesn't do anything. It just invokes the functionality lying behind.
@@ -1197,7 +1544,7 @@ another example that defines the user and the interface type.
 
  consumer: another program/application.
 
-### 10.3- Application binary interface
+### 7.3 Application binary interface
  The ABI defines the structures and methods that your compiled application will use to access the external library, hence we can say that:
  for ABI:
   
