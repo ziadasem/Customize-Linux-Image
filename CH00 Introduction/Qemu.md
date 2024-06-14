@@ -1,6 +1,14 @@
 # Qemu
 in this document, an installation of Qemu is a requirement for this course for those who don't have the hardware.
 
+- [Qemu](#qemu)
+  - [1. What is Qemu](#1-what-is-qemu)
+  - [2. Emulator or Simulator?](#2-emulator-or-simulator)
+    - [Emulator](#emulator)
+    - [Simulator](#simulator)
+    - [Is qemu an emulator?](#is-qemu-an-emulator)
+  - [3. Installing and discovering Qemu](#3-installing-and-discovering-qemu)
+
 ## 1. What is Qemu
 Qemu (Quick emulator) is an emulator that can be used to emulate different boards with their different processors' architectures. including:
 * qemu-system-arm -32bit ARM processor

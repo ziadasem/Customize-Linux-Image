@@ -37,6 +37,9 @@ in this chapter, an explanation of toolchains will be introduced in addition to 
       - [An example – SQLite](#an-example-sqlite)
     - [6.3 Autotools; Package configuration](#63-autotools-package-configuration)
     - [6.4 Problems with cross-compiling](#64-problems-with-cross-compiling)
+    - [6.5 CMake](#65-cmake)
+      - [CMake with libraries](#cmake-with-libraries)
+
   - [7. Additional Information](#7-additional-information)
     - [7.1- POSIX](#71-posix)
     - [7.2 -API and interfaces](#72-api-and-interfaces)
@@ -248,7 +251,9 @@ In this example Linux is used; the request to the Linux kernel to open a file an
 fortunately, a family of OS implements common standards called the Portable Operating System Interface standards (POSIX standards) such as Linux, Mac, QNX, and others which standardize the steps and process of communication between applications (called user-space) and the kernel (kernel space) via a common system call, all of these new terms will be discussed in another chapter.
 
 ![c library block diagram](https://i.ibb.co/4Jqs1JV/Untitled-1.jpg)
+
 from the graph, it is clear that a program can make the system call and request from the kernel directly but it will make the program more complex and reinvent the wheel.
+![comic](https://i.ibb.co/B6HGLNp/comic.jpg)
 
 finally, we can say that
 > A C Library is **an implementation of interface between programs and kernel**.
@@ -1201,6 +1206,8 @@ make
 ```
 **Note**: *don't set the CORSS_CONFIG variable to be persistent among all shell sessions because it may conflict with other commands.*
 
+here is a [good resource](https://www3.nd.edu/~zxu2/acms60212-40212/Makefile.pdf) for make files
+
 **Autotools** and **CMake** both generates makefile, except **CMake** supports other ways of building projects depending on which platform(s) is targeting (Linux in our case).
 
 ### 6.2 Autotools
@@ -1420,6 +1427,160 @@ Each case requires careful analysis of the error and additional parameters to th
 
 Therefore, It is not recommended to manually cross-compiling components for the target in this way, except when there is no alternative or the number of packages to build is small. A much better approach is to use a build tool such as Buildroot or the Yocto Project or avoid the problem altogether by setting up a native build environment for your target architecture.
 Now you can see why distributions such as Debian are always compiled natively.
+
+### 6.5 CMake
+CMake is an extensible, open-source system that manages the build process in an operating system- and compiler-independent manner.
+
+
+Unlike many cross-platform systems such as autotools, CMake is designed to be used in conjunction with the native build environment. Simple configuration files placed in each source directory (called `CMakeLists.txt` files) are used to generate standard build files (e.g., Makefiles on Unix and projects/workspaces in Windows MSVC), which are used in the usual way. This differs from autotools, which generate `make` files only.
+
+CMake can generate a native build environment that will compile source code, create libraries, generate wrappers, and build executable binaries in arbitrary combinations. CMake supports in-place and out-of-place builds and can therefore support multiple builds from a single source tree.
+
+
+This section isn't a full explanation of `CMake`; it introduces cross-compilation using `CMake`. You can find a full tutorial in the [CMake Tutorial](https://medium.com/@onur.dundar1/cmake-tutorial-585dd180109b) or in the [CMake manual](https://cmake.org/cmake/help/latest/index.html).
+
+To configure, build, and install a package for a native Linux operating system, run the following commands (make sure that the package directory has a `CMakeLists.txt` file):
+
+```bash
+ziad@ziadpc:~/cmake_playground$ ls
+total 12K
+-rw-rw-r-- 1 ziad ziad  856 Jun 13 23:30 CMakeLists.txt
+drwxrwxr-x 3 ziad ziad 4.0K Jun 13 22:45 lib
+-rw-rw-r-- 1 ziad ziad  169 Jun 13 23:00 main.cpp
+```
+```bash
+cmake . #Generates a make file (Linux)
+make    #run the make utility directed by Makefile
+sudo make install #install to /usr/bin
+```
+
+```bash
+ziad@ziadpc:~/cmake_playground$ cmake .
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/ziad/cmake_playground
+ziad@ziadpc:~/cmake_playground$ make
+[ 25%] Building CXX object CMakeFiles/math.dir/lib/math/math.cpp.o
+[ 50%] Linking CXX shared library lib/libmath.so
+[ 50%] Built target math
+[ 75%] Building CXX object CMakeFiles/cmake_hello.dir/main.cpp.o
+[100%] Linking CXX executable bin/cmake_hello
+[100%] Built target cmake_hello
+ziad@ziadpc:~/cmake_playground$ sudo make install
+[sudo] password for ziad: 
+Consolidate compiler generated dependencies of target math
+[ 50%] Built target math
+Consolidate compiler generated dependencies of target cmake_hello
+[100%] Built target cmake_hello
+```
+On Linux, the native build tool is GNU make, so CMake generates makefiles by default for us to build with. Oftentimes, to maintain an organized directory hierarchy, we want to perform out-of-source builds (build objects to other directories) so that object files and other build artifacts remain separate from source files.
+
+To configure an out-of-source build in a subdirectory named `build`, run the following commands:
+
+```bash
+mkdir build
+cd build
+cmake ..
+```
+Or use the following in case you don't want to create a directory:
+
+```bash
+cmake -H. -Bbuild
+#H indicates source directory
+#B indicates the build directory
+#run it from the source directory. This will create a directory named build
+```
+This will generate the makefiles inside a `build` subdirectory within the project directory where the `CMakeLists.txt` file is located. The `CMakeLists.txt` file is the CMake equivalent of the configure script for Autotools-based projects.
+
+```bash
+ziad@ziadpc:~/cmake_playground$ cmake -H. -Bbuild
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/ziad/cmake_playground/build
+ziad@ziadpc:~/cmake_playground$ ls
+total 16K
+drwxrwxr-x 5 ziad ziad 4.0K Jun 14 18:53 build
+-rw-rw-r-- 1 ziad ziad  856 Jun 13 23:30 CMakeLists.txt
+drwxrwxr-x 3 ziad ziad 4.0K Jun 14 18:47 lib
+-rw-rw-r-- 1 ziad ziad  169 Jun 13 23:00 main.cpp
+```
+We can then build the project out-of-source from inside the build directory and install the package just as before:
+
+```bash
+make
+sudo make install
+```
+
+CMake uses absolute paths, so the build subdirectory cannot be copied or moved once the `makefiles` have been generated, or any subsequent make step will likely fail. Note that CMake defaults to installing packages into system directories such as `/usr/bin`, even for out-of-source builds.
+
+Here, you should use CMake variables and set them in the `CMakeLists.txt` or by executing `cmake` in the terminal.
+
+```bash
+cmake .. -D CMAKE_INSTALL_PREFIX=../_build
+#or
+cmake -H. -Bbuild -D CMAKE_INSTALL_PREFIX=../_build
+``` 
+No need to use the `sudo` command since the installation directory will not be the root.
+
+Similarly, we can use another CMake command-line option to generate makefiles for cross-compilation:
+
+```bash
+cmake .. -D CMAKE_C_COMPILER="/usr/local/share/x-tools/
+arm-cortex_a8-linux-gnueabihf-gcc"
+```
+But the best practice for cross-compiling with CMake is to create a toolchain file that sets `CMAKE_C_COMPILER` and `CMAKE_CXX_COMPILER` in addition to other relevant variables for targeting embedded Linux.
+
+#### CMake with libraries
+CMake works best when we design our software in a modular way by enforcing well-defined API boundaries between libraries and components.
+
+Here are some key terms that come up time and again in CMake:
+- Target: A software component such as a library or executable.
+- Properties: Include the source files, compiler options, and linked libraries needed to build a target.
+- Package: A CMake file that configures an external target for building, as if it were defined within your `CMakeLists.txt` itself.
+
+For example, if we had a CMake-based executable named `dummy` that needed to take a dependency on SQLite, we could define the following `CMakeLists.txt`:
+
+
+```cmake
+cmake_minimum_required (VERSION 3.0)
+project (Dummy)
+add_executable(dummy dummy.c)
+find_package (SQLite3)
+target_include_directories(dummy PRIVATE ${SQLITE3_INCLUDE_
+DIRS})
+target_link_libraries (dummy PRIVATE ${SQLITE3_LIBRARIES})
+```
+The `find_package` command searches for a package (SQLite3 in this case) and imports it. Then, the external target can be added as a dependency (linked) to the `dummy` executable with the `target_link_libraries` command.
+
+CMake comes with numerous finders for popular C and C++ packages including OpenSSL, Boost, and protobuf, making native development much more productive than using pure makefiles alone.
+
+The `PRIVATE` qualifier prevents details such as headers and flags from leaking outside of the `dummy` target. Using `PRIVATE` makes more sense when the target being built is a library instead of an executable. Think of targets as modules and attempt to minimize their exposed surface areas when using CMake to define your targets. Only employ the `PUBLIC` qualifier when necessary and utilize the `INTERFACE` qualifier for header-only libraries.
+
+It is recommended to deal with many dependencies by modeling your application as a dependency graph with edges between targets. This graph should include not only the libraries that your application links to directly but also any transitive dependencies. **For best results, remove any cycles or other unnecessary dependencies seen in the graph**. It is often best to perform this exercise before you start coding. A little planning can make the difference between a clean, easily maintainable `CMakeLists.txt` and an inscrutable mess that nobody wants to touch.
 
 ## 7. Additional Information
 ### 7.1 POSIX
