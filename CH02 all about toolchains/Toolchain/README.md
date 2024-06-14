@@ -1728,3 +1728,4 @@ hence it can be said that the ABI is the compiled version of API, also ABI is re
 * In the case of a complete operating system ABI, the binary format of object files, program libraries, etc.
 
 ABIs are important when it comes to applications that use external libraries. Libraries are full of code and other resources, but your program has to know how to locate what it needs inside the library file. Your ABI defines how the contents of a library are stored inside the file, and your program uses the ABI to search through the file and find what it needs. If everything in your system conforms to the same ABI, then any program can work with any library file, no matter who created it. Linux and Windows use different ABIs, so a Windows program won't know how to access a library compiled for Linux, for example, the extension of Linux shared libraries is `.so` while for Windows is `.dll`
+
